@@ -1,0 +1,13 @@
+# Packaged sketch archive — regenerated from led_draw_wall/
+led_draw_wall.zip
+
+# Arduino IDE build output
+build/
+*.bin
+*.elf
+*.map
+
+# OS / editor cruft
+Thumbs.db
+desktop.ini
+.DS_Store
