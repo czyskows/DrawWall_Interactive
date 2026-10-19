@@ -21,6 +21,11 @@
 #include <DNSServer.h>
 #include <ESPAsyncWebServer.h>
 #include <LittleFS.h>
+// NOTE: pin FastLED to 3.9.x. On 3.10.x it routes clocked chipsets (WS2801)
+// through the ESP32-S3 LCD_CAM peripheral, which panics on boot here
+// (esp_cache_msync null pointer -> interrupt wdt timeout -> boot loop, before
+// Wi-Fi ever starts), and disabling that driver leaves 3.10 with no WS2801
+// bus for the S3 at all. 3.9.x uses the ordinary SPI path and works.
 #include <FastLED.h>
 #include <vector>
 #include <mutex>
@@ -30,7 +35,9 @@
 // ============================ CONFIG ============================
 #define DATA_PIN       5          // WS2801 DI  (SDI)  -- 3.3V->5V level shifter recommended
 #define CLOCK_PIN      6          // WS2801 CI  (CKI)  -- same shifter, second channel
-#define SPI_MHZ        1          // 1 MHz is safe; try 2 for faster refresh on short wiring
+#define SPI_MHZ        2          // 2 MHz min on ESP32-S3: FastLED clocks WS2801 via the
+                                  // LCD/I80 peripheral, whose prescaler can't reach 1 MHz
+                                  // (addLeds then hangs before Wi-Fi starts). Raise if flickery.
 #define GRID_W         27         // columns
 #define GRID_H         25         // rows
 #define FIRST_ROW_RTL  true       // top row runs right->left (data enters top-right)
@@ -58,6 +65,11 @@ static const uint8_t  MAX_SCROLL     = 20;      // fastest scroll, columns per s
 
 enum : uint8_t { OP_PIXELS = 0x01, OP_CLEAR = 0x02, OP_SAVE = 0x03, OP_SCROLL = 0x04,
                  OP_FULL = 0x10, OP_OFFSET = 0x11 };
+
+// Slideshow item. Defined up here (not next to the slideshow code) because the
+// .ino preprocessor hoists its generated prototypes above the first function,
+// and renderItem()/pickNext() need the type to be complete by then.
+struct Item { bool anim; uint16_t id; };   // anim: id = animation number; else saved id
 
 CRGB leds[NUM_LEDS];       // physical order
 CRGB canvas[NUM_LEDS];     // shared drawing, row-major from top-left
@@ -273,7 +285,6 @@ void onWsEvent(AsyncWebSocket* s, AsyncWebSocketClient* client, AwsEventType typ
 }
 
 // ---------------------------------------------------------------- slideshow
-struct Item { bool anim; uint16_t id; };   // anim: id = animation number; else saved id
 const uint8_t NUM_ANIMS = 3;
 
 CRGB imgA[NUM_LEDS], imgB[NUM_LEDS];
