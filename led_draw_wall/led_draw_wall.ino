@@ -1,6 +1,6 @@
 /*
   LED Draw Wall
-  ESP32-S3-mini + WS2812B grid (27 wide x 25 tall, zigzag, data starts top-right)
+  ESP32-S3-mini + WS2801 grid (27 wide x 25 tall, zigzag, data starts top-right)
 
   - ESP32 runs its own Wi-Fi hotspot with a captive portal, so joining the
     network pops the drawing page open automatically.
@@ -28,11 +28,13 @@
 #include "admin_html.h"
 
 // ============================ CONFIG ============================
-#define LED_PIN        5          // data pin (through a 3.3V->5V level shifter ideally)
+#define DATA_PIN       5          // WS2801 DI  (SDI)  -- 3.3V->5V level shifter recommended
+#define CLOCK_PIN      6          // WS2801 CI  (CKI)  -- same shifter, second channel
+#define SPI_MHZ        1          // 1 MHz is safe; try 2 for faster refresh on short wiring
 #define GRID_W         27         // columns
 #define GRID_H         25         // rows
 #define FIRST_ROW_RTL  true       // top row runs right->left (data enters top-right)
-#define LED_ORDER      GRB        // WS2812B is GRB
+#define LED_ORDER      RGB        // WS2801 is usually RGB; if red shows as blue, try BGR / GRB
 
 static const uint8_t  BRIGHTNESS     = 90;      // global cap, 0-255
 static const uint32_t PSU_MA         = 4000;    // FastLED keeps total draw under this
@@ -440,7 +442,7 @@ void setup() {
   for (int i = 0; i < 256; i++)
     gammaLut[i] = GAMMA_CORRECT ? (uint8_t)(powf(i / 255.0f, 2.2f) * 255.0f + 0.5f) : i;
 
-  FastLED.addLeds<WS2812B, LED_PIN, LED_ORDER>(leds, NUM_LEDS);
+  FastLED.addLeds<WS2801, DATA_PIN, CLOCK_PIN, LED_ORDER, DATA_RATE_MHZ(SPI_MHZ)>(leds, NUM_LEDS);
   FastLED.setBrightness(BRIGHTNESS);
   FastLED.setMaxPowerInVoltsAndMilliamps(5, PSU_MA);
   bootWipe();
@@ -487,7 +489,7 @@ void loop() {
 
   if (saveRequested) { saveRequested = false; doSave(); }
 
-  if (now - lastFrame >= 30) {        // ~33 fps (675 LEDs take ~20 ms to clock out)
+  if (now - lastFrame >= 30) {        // ~33 fps (675 LEDs = 16 kbit, ~16 ms at 1 MHz)
     uint32_t dt = min(now - lastFrame, (uint32_t)100);
     lastFrame = now;
     static CRGB frame[NUM_LEDS];
