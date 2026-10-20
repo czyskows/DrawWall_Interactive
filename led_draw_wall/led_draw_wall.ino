@@ -1,6 +1,6 @@
 /*
   LED Draw Wall
-  ESP32-S3-mini + WS2801 grid (27 wide x 25 tall, zigzag, data starts top-right)
+  ESP32-S3-mini + WS2801 grid (27 wide x 25 tall, zigzag, data starts top-left)
 
   - ESP32 runs its own Wi-Fi hotspot with a captive portal, so joining the
     network pops the drawing page open automatically.
