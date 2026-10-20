@@ -35,13 +35,13 @@
 // ============================ CONFIG ============================
 #define DATA_PIN       5          // WS2801 DI  (SDI)  -- 3.3V->5V level shifter recommended
 #define CLOCK_PIN      6          // WS2801 CI  (CKI)  -- same shifter, second channel
-#define SPI_MHZ        2          // 2 MHz min on ESP32-S3: FastLED clocks WS2801 via the
-                                  // LCD/I80 peripheral, whose prescaler can't reach 1 MHz
-                                  // (addLeds then hangs before Wi-Fi starts). Raise if flickery.
+#define SPI_MHZ        1          // WS2801 is nominally a 1 MHz part; 2 MHz flickered here.
+                                  // (The old "2 MHz minimum" only applied to FastLED 3.10's
+                                  // LCD_CAM driver -- 3.9.x's plain SPI path has no such floor.)
 #define GRID_W         27         // columns
 #define GRID_H         25         // rows
-#define FIRST_ROW_RTL  true       // top row runs right->left (data enters top-right)
-#define LED_ORDER      RGB        // WS2801 is usually RGB; if red shows as blue, try BGR / GRB
+#define FIRST_ROW_RTL  false      // top row runs left->right (data enters top-LEFT)
+#define LED_ORDER      RBG        // these strips want R, then B, then G
 
 static const uint8_t  BRIGHTNESS     = 90;      // global cap, 0-255
 static const uint32_t PSU_MA         = 4000;    // FastLED keeps total draw under this
